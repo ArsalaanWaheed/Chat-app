@@ -5,10 +5,10 @@ import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
 import cors from "cors";
 import passport from "passport";
-import localStrategy from "passport-local"
+import {Strategy as localStrategy} from "passport-local"
 import User from "./models/userModel.js";
 import session  from "express-session";
-import authRoute from "./routers/authRoute.js";
+import authRouter from "./routers/authRoute.js";
 
 dotenv.config();
 
@@ -42,15 +42,33 @@ app.use(session({
 app.use(cors({
     origin:[process.env.ORIGIN],
     methods:["GET","POST","PATCH","PUT","DELETE"],
-    crendentials:true,
+    credentials:true,
 }))
 app.use(passport.initialize());
 app.use(passport.session())
-passport.use(new localStrategy(User.authenticate()))
+// passport.use(new localStrategy(
+//     function(username, password, done) {
+//       User.findOne({ username: username })
+//         .exec()
+//         .then((user) => {
+//           if (!user) { return done(null, false); }
+//           try {
+//             if (user.password!==(password)) { return done(null, false); }
+//             return done(null, user);
+//           } catch (err) {
+//             return done(err);
+//           }
+//         })
+//         .catch((err) => {
+//           return done(err);
+//         });
+//     }
+//   ));
+passport.use(new localStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser);
 passport.deserializeUser(User.deserializeUser);
 app.use(cookieParser());
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
 
-app.use("/api/auth" ,authRoute);
+app.use("/api/auth" ,authRouter);
