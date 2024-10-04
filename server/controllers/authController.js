@@ -1,3 +1,4 @@
+import { hashSync } from "bcrypt";
 import User from "../models/userModel.js"
 import jwt from  "jsonwebtoken";
 
@@ -10,20 +11,23 @@ const maxAge=3*24*60*60*1000;
 
 export const signup =async(req,res,next)=>{
    
-    // const {username,email,password}=req.body;
-    // if(!email || !password  || !username){
-    //     return res.status(400).json({msg:"Please enter all fields"})
+    const {username,email,password}=req.body;
+    let newUser = new User({
+        email,
+        username,
+        password:hashSync(password,10)
+    });
+    await  newUser.save();
 
-    // }
-    // const user=new User(req.body)
-    let newUser=new User({email,username});
 
-    let regUser=await User.register(newUser,password);
+    // let newUser=new User({email,username});
 
-    req.login(regUser,((err)=>{
-        if(err) return next(err);
-        res.redirect('/');
-    }))
+    // let regUser=await User.register(newUser,password);
+
+    // req.login(regUser,((err)=>{
+    //     if(err) return next(err);
+    //     res.redirect('/');
+    // }))
 
 res.send("done");
 
@@ -33,6 +37,8 @@ res.send("done");
 export const login =async(req,res,next)=>{
     let {username,password,}=req.body;
     console.log(req.body);
+    console.log(req.user);
+    res.status(200).json(req.user);
 //     if(!email ||  !username || !password){     
 //         return res.status(400).json({message:"Please fill in all fields"});
 //     }

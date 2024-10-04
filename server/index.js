@@ -2,6 +2,7 @@ import express from "express";
 
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import cors from "cors";
 import passport from "passport";
@@ -9,6 +10,8 @@ import {Strategy as localStrategy} from "passport-local"
 import User from "./models/userModel.js";
 import session  from "express-session";
 import authRouter from "./routers/authRoute.js";
+import { compareSync } from "bcrypt";
+
 
 dotenv.config();
 
@@ -46,27 +49,54 @@ app.use(cors({
 }))
 app.use(passport.initialize());
 app.use(passport.session())
-// passport.use(new localStrategy(
-//     function(username, password, done) {
-//       User.findOne({ username: username })
-//         .exec()
-//         .then((user) => {
-//           if (!user) { return done(null, false); }
-//           try {
-//             if (user.password!==(password)) { return done(null, false); }
-//             return done(null, user);
-//           } catch (err) {
-//             return done(err);
-//           }
-//         })
-//         .catch((err) => {
-//           return done(err);
-//         });
-//     }
-//   ));
-passport.use(new localStrategy(User.authenticate()));
-passport.serializeUser(User.serializeUser);
-passport.deserializeUser(User.deserializeUser);
+// // passport.use(new localStrategy(
+// //     function(username, password, done) {
+// //       User.findOne({ username: username })
+// //         .exec()
+// //         .then((user) => {
+// //           if (!user) { return done(null, false); }
+// //           try {
+// //             if (user.password!==(password)) { return done(null, false); }
+// //             return done(null, user);
+// //           } catch (err) {
+// //             return done(err);
+// //           }
+// //         })
+// //         .catch((err) => {
+// //           return done(err);
+// //         });
+// //     }
+// //   ));
+// User.verifyPassword = function(password) {
+//     return bcrypt.compareSync(password, this.password); // Ensure 'this.password' is the hashed password
+//   };
+
+passport.use(new localStrategy(async (username, password, done) => {
+    try {
+      const user = await User.findOne({ username: username });
+      if (!user) {
+        return done(null, false); // User not found
+      }
+      if (!compareSync(password, user.password)) {
+        return done(null, false); // Password incorrect
+      }
+      return done(null, user); // Successful authentication
+    } catch (err) {
+      return done(err); // Handle errors
+    }
+  }));
+
+  passport.serializeUser((user, done) => {
+    done(null, user._id); // Serialize user ID
+  });
+  passport.deserializeUser(async (id, done) => {
+    try {
+      const user = await User.findById(id);
+      done(null, user);
+    } catch (err) {
+      done(err);
+    }
+  });
 app.use(cookieParser());
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
